@@ -36,11 +36,14 @@ export function MedicineEntryRow({
   const unresolved = state.inputName.trim().length > 1 && state.resolved === false;
 
   function handlePick(rec: DrugRecord) {
+    const hasMolecules = rec.activeMolecules && rec.activeMolecules.length > 0;
     onChange({
       inputName: rec.displayName,
-      normalizedName: rec.displayName,
-      activeMolecules: rec.activeMolecules,
-      resolved: true,
+      normalizedName: hasMolecules ? rec.displayName : undefined,
+      activeMolecules: hasMolecules ? rec.activeMolecules : undefined,
+      // If the suggestion has no molecules yet (e.g. RxNav result),
+      // leave resolved unset so the server re-normalizes on submit.
+      resolved: hasMolecules ? true : undefined,
     });
   }
 

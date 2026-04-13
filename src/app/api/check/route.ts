@@ -54,7 +54,7 @@ export async function POST(req: Request) {
   // Ensure every medicine is fully normalized (server-side re-normalization for unresolved ones)
   const entries: MedicineEntry[] = await Promise.all(
     parsed.data.medicines.map(async (m) => {
-      if (m.resolved && m.activeMolecules && m.normalizedName) {
+      if (m.resolved && m.activeMolecules && m.activeMolecules.length > 0 && m.normalizedName) {
         return {
           inputName: m.inputName,
           normalizedName: m.normalizedName,
