@@ -90,6 +90,15 @@ export function ResultsClient() {
                 {m.normalizedName !== m.inputName && (
                   <span className="text-muted-foreground">→ {m.normalizedName}</span>
                 )}
+                {m.source === "rxnav" && (
+                  <Badge
+                    variant="outline"
+                    className="border-sky-500 text-sky-700"
+                    title="Resolved via NIH RxNorm — limited rule data"
+                  >
+                    RxNorm
+                  </Badge>
+                )}
                 {m.activeMolecules.length === 0 ? (
                   <Badge variant="outline" className="border-amber-500 text-amber-700">
                     unresolved

@@ -11,6 +11,7 @@ export function scoreOverall(
   const moderate = findings.filter((f) => f.severity === "moderate").length;
   const minor = findings.filter((f) => f.severity === "minor").length;
   const unresolved = entries.filter((e) => !e.resolved).length;
+  const limitedData = findings.filter((f) => f.id.startsWith("limited_data:")).length;
 
   let status: Status;
   if (critical > 0) status = "no_go";
@@ -26,6 +27,7 @@ export function scoreOverall(
   if (moderate > 0) parts.push(`${moderate} moderate concern${moderate > 1 ? "s" : ""}`);
   if (minor > 0) parts.push(`${minor} minor note${minor > 1 ? "s" : ""}`);
   if (unresolved > 0) parts.push(`${unresolved} unrecognised medicine${unresolved > 1 ? "s" : ""}`);
+  if (limitedData > 0) parts.push(`${limitedData} medicine${limitedData > 1 ? "s" : ""} with limited rule data`);
 
   let summary: string;
   if (status === "no_go") {

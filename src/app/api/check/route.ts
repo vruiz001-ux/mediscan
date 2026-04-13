@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { runPipeline } from "@/lib/domain/pipeline";
-import { normalizeEntries } from "@/lib/domain/normalizationEngine";
+import { normalizeEntriesWithRxNav } from "@/lib/domain/normalizationEngine";
 import { prisma } from "@/lib/db/client";
 import type { MedicineEntry } from "@/lib/types";
 
@@ -52,33 +52,35 @@ export async function POST(req: Request) {
   }
 
   // Ensure every medicine is fully normalized (server-side re-normalization for unresolved ones)
-  const entries: MedicineEntry[] = parsed.data.medicines.map((m) => {
-    if (m.resolved && m.activeMolecules && m.normalizedName) {
-      return {
-        inputName: m.inputName,
-        normalizedName: m.normalizedName,
-        activeMolecules: m.activeMolecules,
-        resolved: true,
-        strength: m.strength,
-        dosage: m.dosage,
-        frequency: m.frequency,
-        route: m.route,
-        reasonForUse: m.reasonForUse,
-      };
-    }
-    // re-normalize from raw
-    const [n] = normalizeEntries([
-      {
-        inputName: m.inputName,
-        strength: m.strength,
-        dosage: m.dosage,
-        frequency: m.frequency,
-        route: m.route,
-        reasonForUse: m.reasonForUse,
-      },
-    ]);
-    return n;
-  });
+  const entries: MedicineEntry[] = await Promise.all(
+    parsed.data.medicines.map(async (m) => {
+      if (m.resolved && m.activeMolecules && m.normalizedName) {
+        return {
+          inputName: m.inputName,
+          normalizedName: m.normalizedName,
+          activeMolecules: m.activeMolecules,
+          resolved: true,
+          strength: m.strength,
+          dosage: m.dosage,
+          frequency: m.frequency,
+          route: m.route,
+          reasonForUse: m.reasonForUse,
+        } satisfies MedicineEntry;
+      }
+      // re-normalize from raw (with RxNav fallback)
+      const [n] = await normalizeEntriesWithRxNav([
+        {
+          inputName: m.inputName,
+          strength: m.strength,
+          dosage: m.dosage,
+          frequency: m.frequency,
+          route: m.route,
+          reasonForUse: m.reasonForUse,
+        },
+      ]);
+      return n;
+    }),
+  );
 
   const result = runPipeline(entries, parsed.data.profile);
 

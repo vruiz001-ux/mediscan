@@ -71,6 +71,31 @@ src/
 
 Combination products (Co-codamol, Augmentin, Panadol Extra) resolve to multiple active ingredients and each is screened independently.
 
+### How brand-name-to-molecule recognition works
+
+MediScan is **local-first with an RxNav fallback**:
+
+1. **Local lookup** — the built-in `brandToMoleculeMap` + `drugDatabase` (~20 molecules, common brands + aliases) is checked first. Autocomplete only returns local results when we have ≥3 matches or any exact hit.
+2. **NIH RxNav fallback** — otherwise we call the free [RxNav REST API](https://rxnav.nlm.nih.gov/RxNormAPIs.html):
+   - `approximateTerm` for fuzzy autocomplete (RxCUI → canonical name)
+   - `rxcui.json?name=…&search=2` to resolve a brand/generic to an RxCUI
+   - `rxcui/{id}/related.json?tty=IN` to get active ingredient names
+3. **Caching** — every lookup is cached in Prisma (`RxCache` table: 1 day TTL for search, 7 days for resolved ingredient mappings) + an in-memory LRU (100 entries / 1h).
+4. **Failure-tolerant** — 3 s timeout, one retry on 5xx, empty result on failure. The app still works fully offline with local data if RxNav is unreachable.
+
+#### Limited data caveat
+
+RxNav returns RxNorm ingredient names which may not match MediScan's internal rule database. When a medicine is resolved via RxNav to an ingredient we have no rule data for, the pipeline emits a `"Limited data for {molecule}"` finding at **moderate / caution** severity — so the overall result is always at least `caution` and the user is told to consult a pharmacist. We never silently assume "no rule = safe".
+
+Disable the integration with `MEDISCAN_USE_RXNAV=false` if you hit rate-limit issues (NIH asks for ≤20 req/s; we enforce a local token bucket).
+
+### Data sources
+
+- **NIH / National Library of Medicine — RxNorm & RxNav** (<https://rxnav.nlm.nih.gov/>) — brand / generic / ingredient resolution. Public domain, no API key.
+- FDA drug labels, EMA SmPC, UpToDate, Stockley's Drug Interactions — rule provenance (comments in the rule tables).
+
+> RxNav's built-in interaction API was retired by NLM in 2024, so MediScan's interaction / duplicate / contraindication rules remain the single source of truth. RxNav is used **only** for name recognition.
+
 ### Rules
 
 - **Interactions** — pairwise molecule × molecule table (warfarin + NSAID = critical no_go, SSRI + tramadol = critical no_go, simvastatin + clarithromycin = critical no_go, etc.).

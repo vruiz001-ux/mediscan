@@ -16,3 +16,11 @@ model Check {
   status     String   // "go" | "caution" | "no_go"
   createdAt  DateTime @default(now())
 }
+
+model RxCache {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  valueJson String
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+}

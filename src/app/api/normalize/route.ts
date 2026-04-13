@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { normalizeEntries } from "@/lib/domain/normalizationEngine";
+import { normalizeEntriesWithRxNav } from "@/lib/domain/normalizationEngine";
 
 const Body = z.object({
   entries: z
@@ -24,6 +24,6 @@ export async function POST(req: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid body", details: parsed.error.flatten() }, { status: 400 });
   }
-  const normalized = normalizeEntries(parsed.data.entries);
+  const normalized = await normalizeEntriesWithRxNav(parsed.data.entries);
   return NextResponse.json({ normalized });
 }
