@@ -30,7 +30,7 @@ export type MedicineEntry = {
   route?: string;
   reasonForUse?: string;
   resolved: boolean;
-  source?: "local" | "rxnav" | "unresolved";
+  source?: "local" | "pl_registry" | "rxnav" | "unresolved";
   rxcui?: string;
 };
 
@@ -72,7 +72,7 @@ export type OverallResult = {
     inputName: string;
     normalizedName: string;
     activeMolecules: string[];
-    source?: "local" | "rxnav" | "unresolved";
+    source?: "local" | "pl_registry" | "rxnav" | "unresolved";
     rxcui?: string;
   }>;
   findings: Finding[];

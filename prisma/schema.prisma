@@ -24,3 +24,53 @@ model RxCache {
   createdAt DateTime @default(now())
   expiresAt DateTime
 }
+
+// --- Polish medication registry (URPL-shaped) ---
+
+model PlSubstance {
+  id        Int                  @id @default(autoincrement())
+  inn       String               @unique
+  atcCode   String?
+  products  PlProductSubstance[]
+}
+
+model PlProduct {
+  id              Int                  @id @default(autoincrement())
+  commercialName  String
+  nameNormalized  String
+  dosageForm      String?
+  strength        String?
+  manufacturer    String?
+  registrationNo  String?              @unique
+  prescription    Boolean?
+  country         String               @default("PL")
+  source          String?
+  sourceUpdatedAt DateTime?
+  withdrawnAt     DateTime?
+  substances      PlProductSubstance[]
+  aliases         PlProductAlias[]
+
+  @@index([nameNormalized])
+}
+
+model PlProductSubstance {
+  productId   Int
+  substanceId Int
+  strength    String?
+  product     PlProduct   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  substance   PlSubstance @relation(fields: [substanceId], references: [id])
+
+  @@id([productId, substanceId])
+}
+
+model PlProductAlias {
+  id              Int       @id @default(autoincrement())
+  productId       Int
+  alias           String
+  aliasNormalized String
+  kind            String    // 'brand' | 'misspelling' | 'local' | 'legacy'
+  product         PlProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([aliasNormalized, productId])
+  @@index([aliasNormalized])
+}

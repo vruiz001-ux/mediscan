@@ -10,6 +10,8 @@ import { lookupDrug } from "./brandToMoleculeMap";
 import { molecules } from "./drugDatabase";
 import { resolveIngredients, resolveNameToRxcui } from "@/lib/integrations/rxnav";
 import { cached, CACHE_TTL } from "@/lib/integrations/cache";
+import { identify as identifyPl } from "@/lib/identify/resolver";
+import { plInnToMoleculeId } from "@/lib/identify/innToMolecule";
 
 export type RawEntry = {
   inputName: string;
@@ -73,6 +75,26 @@ export async function normalizeEntryWithRxNav(raw: RawEntry): Promise<MedicineEn
 
   const trimmed = raw.inputName.trim();
   if (!trimmed) return local;
+
+  // PL registry lookup before RxNav: cheaper, no network, and authoritative
+  // for the Polish market. RxNav doesn't carry most PL brand names.
+  try {
+    const pl = await identifyPl(trimmed);
+    if (pl.identified) {
+      const inns = "active_substances" in pl ? pl.active_substances : [pl.active_substance];
+      const moleculeIds = inns.filter(Boolean).map(plInnToMoleculeId);
+      return {
+        ...local,
+        normalizedName: pl.commercial_name,
+        activeMolecules: moleculeIds,
+        strength: raw.strength ?? pl.strength ?? undefined,
+        resolved: true,
+        source: "pl_registry",
+      };
+    }
+  } catch (err) {
+    console.warn("[normalize] PL registry lookup failed:", (err as Error).message);
+  }
 
   try {
     const ingredients = await cached(
