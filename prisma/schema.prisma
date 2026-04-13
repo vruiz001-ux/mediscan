@@ -1,0 +1,18 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+  binaryTargets   = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Check {
+  id         String   @id @default(cuid())
+  inputJson  String
+  resultJson String
+  status     String   // "go" | "caution" | "no_go"
+  createdAt  DateTime @default(now())
+}
